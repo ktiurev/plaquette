@@ -1,0 +1,45 @@
+name: Bug report
+description: Create a report to help us improve
+title: ''
+labels: bug
+assignees: 'massarom'
+body:
+  - type: checkboxes
+    attributes:
+      label: Maybe it's already fixed?
+      description: Are you using the latest version on PyPI? Otherwise, check if the current `main` branch already has a fix for the problem you're having. Fixes in the `main` branch are note immediately available on PyPi.
+      options:
+        - label: I tried the latest version available on PyPI.
+          required: true
+        - label: Same problem occurs on `main` branch.
+          required: true
+  - type: textarea
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: Expected behavior
+      description: A clear and concise description of what you expected to happen.
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: Minimal Working Example
+      description: Please include the smallest possible _but still fully functional_ code sample that once run will reproduce the error.
+      render: python
+  - type: textarea
+    attributes:
+      label: Traceback (if any)
+      description: Exception traceback, if the problem you're describing is causing one to be generated.
+      placeholder: A long traceback can be added with the [`<details>`](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections) tag.
+      render: Python traceback
+  - type: dropdown
+    attributes:
+      label: Version
+      description: What version are you using? Remember that, unless explicitly stated elsewhere, only the latest version on PyPI is supported, so
+      options:
+        - PyPI
+        - main branch
