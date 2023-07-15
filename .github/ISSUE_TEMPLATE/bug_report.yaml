@@ -16,14 +16,10 @@ body:
     attributes:
       label: Describe the bug
       description: A clear and concise description of what the bug is.
-    validations:
-      required: false
   - type: textarea
     attributes:
       label: Expected behavior
       description: A clear and concise description of what you expected to happen.
-    validations:
-      required: false
   - type: textarea
     attributes:
       label: Minimal Working Example
@@ -32,8 +28,11 @@ body:
   - type: textarea
     attributes:
       label: Traceback (if any)
-      description: Exception traceback, if the problem you're describing is causing one to be generated.
-      placeholder: A long traceback can be added with the [`<details>`](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections) tag.
+      description: Exception traceback, if the problem you're describing is causing one to be generated. Be careful that some information about your system might be present (it's mostly paths of the scripts you use). Scrub them if needed!
+      placeholder: |
+        Traceback (most recent call last):
+          File "<stdin>", line 1, in <module>
+        ZeroDivisionError: division by zero
       render: Python traceback
   - type: dropdown
     attributes:
@@ -42,3 +41,5 @@ body:
       options:
         - PyPI
         - main branch
+    validations:
+      required: true
