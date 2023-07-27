@@ -72,9 +72,9 @@ A sample table looks like this.
           1  ancilla     0.1  0.1  0.1      0.1         0.03    available
    ========  ==========  ===  ===  ===  =======  ===========  ===========
 
-You can some values are missing in the measurement. The missing values are set
-to NaN and ignored during the simulations. To use the data from the csv, one
-can use :meth:`.ErrorData.from_csv` to
+You can see that some values are missing in the measurement. The missing values
+are set to NaN and ignored during the simulations. To use the data from the
+csv, one can use :meth:`.ErrorData.from_csv` to
 create a new object. To update an existing object using a csv, one can use the
 method :meth:`.ErrorData.update_from_csv`.
 Apart from using CSV files, qubit errors can also be added programmatically
