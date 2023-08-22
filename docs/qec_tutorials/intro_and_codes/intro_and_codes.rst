@@ -255,7 +255,7 @@ additional ancillary qubits, which allow one to extract the eigenvalue
 of the state with respect to a given stabilizer operator.
 
 Consider the following circuit, where a system is encoded in a
-stabilized state :math:`\lvert\psi \rangle` and an error :math:`E` has occurred
+stabilizer state :math:`\lvert\psi \rangle` and an error :math:`E` has occurred
 somewhere in the code. To detect the error, we prepare an ancillary
 qubit in the :math:`\lvert+\rangle` state, apply a controlled-unitary gate,
 where the unitary is given by the stabilizer operator that we want to
@@ -448,9 +448,9 @@ Figure({...
 .. figure:: rep3_syn.png
 
 If you have tested the three suggested errors and observed carefully the syndromes obtained
-with each one of them, you will be starting to understand how
-are the individual :math:`X` error reflected in the syndrome. Now, try to input the
-following errors, which contain errors on multiple individual qubits, and compare this syndromes
+with each one of them, you have started to understand how
+the individual :math:`X` errors are reflected in the syndrome. Now, try to input the
+following errors, which contain errors on multiple individual qubits, and compare these syndromes
 with the ones obtained above:
 
 -  ``{1: ["x"], 2: ["x"]}``

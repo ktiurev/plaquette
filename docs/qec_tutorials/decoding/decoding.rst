@@ -2,16 +2,16 @@ The decoding problem
 ====================
 
 Previously, we learned how to define a quantum error correcting code by making use of
-the stabilizer formalism. We also learned how one can use take non-destructive
+the stabilizer formalism. We also learned how one can use non-destructive
 measurements of the code's stabilizers to obtain a syndrome. We encouraged you to use
 the simulation package ``plaquette`` to input many stances of errors and learn what
-kind of syndrome should you expect given an error. A syndrome, as we also saw, is
+kind of syndrome you should expect given an error. A syndrome, as we also saw, is
 degenerate, which means that many different errors can give the same syndromes.
 
 Errors with the same shape as stabilizers and logical operators do not toggle any of
 the stabilizer measurements. In the case of the former, the error is trivial because
 applying a stabilizer to the state leaves it unchanged. The latter is not trivial and
-posses a serious issue: a logical operator has been applied to the code, and we'll
+poses a serious issue: a logical operator has been applied to the code, and we'll
 never be able to detect it! All of our future calculations with that logical
 qubit will return wrong results.
 
@@ -28,7 +28,7 @@ toggles the same stabilizer measurements.
 
     C E \lvert \psi \rangle = C E g_i \lvert \psi \rangle = g_i (CE \lvert \psi \rangle) \quad \forall i
 
-In this way, we can be sure that an error-afflicted state is once again a stabilized
+In this way, we can be sure that an error-afflicted state is once again a stabilizer
 state. Suppose that the error commutes with the :math:`i`-th stabilizer, then the
 correction must also commute with that same stabilizer:
 
@@ -45,7 +45,7 @@ anti-commute with that stabilizer:
 
     C E \lvert \psi \rangle = C E g_j \lvert \psi \rangle = - C g_j E \lvert \psi \rangle = g_j (CE \lvert \psi \rangle)
 
-Which means that if if :math:`\{g_i,E\}=0` then :math:`\{g_i,C\}=0`.
+Which means that if :math:`\{g_i,E\}=0` then :math:`\{g_i,C\}=0`.
 
 A correction :math:`C` to an error :math:`E` is considered to be successful if one
 retrieves the original state of the system.
@@ -101,7 +101,7 @@ requirements and apply it to the code.
     the correct form by using a function from ``plaquette.pauli``.
 
 Consider the syndrome shown below. We decide to define a correction operator consisting
-of an :math:`X` operator on the qubit with index :math:`3`and a :math:`Z` operator on
+of an :math:`X` operator on the qubit with index :math:`3` and a :math:`Z` operator on
 the qubit with index :math:`7`.
 
 >>> syndrome = np.array([1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0])
@@ -146,7 +146,7 @@ We can begin to give a preliminary definition for what is the decoding problem: 
 decoding, we are looking for a chain of qubits that connects any two syndromes and we
 place errors of the same type between them. Because both our correction and *whatever*
 the error was hold the same commutation/anti-commutation relations with every
-stabilizer, the correction will return the state of the system to a stabilized state!
+stabilizer, the correction will return the state of the system to a stabilizer state!
 
 Now that we have set this *preliminary* definition, we can use it to start decoding
 some other problems. Consider, for example, the following syndrome and two corrections
@@ -181,7 +181,7 @@ But this is not the case for our last example. Now, the former correction
 operator :math:`\bar{Z}`! This means that one correction rightfully corrects the
 error, while the other one contributes to having a logical error.
 
-What tools do we have that may help us make a decision between two or more *seemly
+What tools do we have that may help us make a decision between two or more *seemingly
 equally valid* corrections, in order to reduce the probabilities of choosing the one
 that gives a logical error?
 
