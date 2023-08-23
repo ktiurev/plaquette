@@ -13,6 +13,6 @@ pylatexenc
 plaquette_graph
 plaquette_unionfind
 seaborn>=0.12.1
-stim>=1.10.0
+stim~=1.12
 toml>=0.10
 tqdm
