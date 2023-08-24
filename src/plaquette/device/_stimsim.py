@@ -15,14 +15,6 @@ import plaquette
 from plaquette import circuit, device
 
 
-def _append_equiprobable(circ: stim.Circuit, p: float, steps):
-    """Helper function for adding equiprobable cases to Stim circuit."""
-    for i, step in enumerate(steps):
-        gate = ("ELSE_" if i > 0 else "") + "CORRELATED_ERROR"
-        p_i = p / (1 - i * p)
-        circ.append(gate, step, p_i)
-
-
 def circuit_to_stim(circ: circuit.Circuit) -> tuple[stim.Circuit, list[bool]]:
     """Convert Clifford circuit in ``plaquette``'s format to Stim's format.
 
