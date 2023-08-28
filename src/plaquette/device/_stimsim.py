@@ -15,14 +15,6 @@ import plaquette
 from plaquette import circuit, device
 
 
-def _append_equiprobable(circ: stim.Circuit, p: float, steps):
-    """Helper function for adding equiprobable cases to Stim circuit."""
-    for i, step in enumerate(steps):
-        gate = ("ELSE_" if i > 0 else "") + "CORRELATED_ERROR"
-        p_i = p / (1 - i * p)
-        circ.append(gate, step, p_i)
-
-
 def circuit_to_stim(circ: circuit.Circuit) -> tuple[stim.Circuit, list[bool]]:
     """Convert Clifford circuit in ``plaquette``'s format to Stim's format.
 
@@ -39,10 +31,6 @@ def circuit_to_stim(circ: circuit.Circuit) -> tuple[stim.Circuit, list[bool]]:
            whether the result signals an erasure (``True``) or a regular
            measurement outcome (:class`False`).
     """
-    n_qubits = circ.number_of_qubits
-    # One additional qubit is used to herald erasures (if necessary).
-    erasure_ancilla = n_qubits
-    x_erasure_ancilla = stim.target_x(erasure_ancilla)
     res = stim.Circuit()
     # For each measuremen result, the following list contains an entry which specifies
     # whether the result signals an erasure or a regular measurement outcome.
@@ -65,19 +53,7 @@ def circuit_to_stim(circ: circuit.Circuit) -> tuple[stim.Circuit, list[bool]]:
             case "E_ERASE":
                 assert len(args) == 2
                 p, target = args
-                # Reference: https://quantumcomputing.stackexchange.com/a/26583
-                res.append("R", erasure_ancilla)
-                _append_equiprobable(
-                    res,
-                    p / 4,
-                    (
-                        (x_erasure_ancilla, stim.target_x(target)),
-                        (x_erasure_ancilla, stim.target_y(target)),
-                        (x_erasure_ancilla, stim.target_z(target)),
-                        (x_erasure_ancilla,),
-                    ),
-                )
-                res.append("M", erasure_ancilla)
+                res.append("HERALDED_ERASE", target, p)
                 meas_is_erasure.append(True)
             case "ERROR":
                 p, name2, *args2 = args
