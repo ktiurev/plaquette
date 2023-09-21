@@ -1093,6 +1093,12 @@ def string_to_state(
                [1, 0, 0, 0, 0],
                [0, 1, 0, 0, 0]], dtype=uint8)
 
+        >>> string_to_state(["XX", "ZZ"])
+        array([[0, 0, 1, 0, 0],
+               [0, 1, 0, 0, 0],
+               [1, 1, 0, 0, 0],
+               [0, 0, 1, 1, 0]], dtype=uint8)
+
         Giving operators that do not respect the properties of stabilisers
         states will raise an exception:
         >>> string_to_state(["XI", "ZI"])
@@ -1126,17 +1132,104 @@ def string_to_state(
             )
     else:
         # If no destabilisers are given, we need to calculate them
-        ident_size = count_qubits(binary_stabilisers[0])[0]
-        ident = np.eye(ident_size, dtype="u1")
-        zero = np.zeros(ident.shape, dtype="u1")
-        omega = np.block([[zero, ident], [ident, zero]])
-        binary_destabilisers = (
-            np.linalg.pinv(binary_stabilisers[:, :-1].T) @ omega
-        ).astype("u1")
-        # attach an empty column for the sign info
-        binary_destabilisers = np.hstack(
-            (binary_destabilisers, np.zeros((ident_size, 1), dtype="u1"))
+        ngens, nqubits = (
+            binary_stabilisers.shape[0],
+            (binary_stabilisers.shape[1] - 1) // 2,
         )
+        # operations are in the form "op_id", "pivot", "target qubit"
+        ops: list[tuple[str, int | None, int | None]] = []
+        # save the original stabilisers as a copy to binary_stabiliser_og
+        binary_stabilisers_og = binary_stabilisers.copy()
+        for i in range(ngens):
+            pivot = i
+            while pivot < nqubits and all(
+                binary_stabilisers[i, [pivot, pivot + nqubits]] == 0
+            ):
+                pivot += 1
+
+            if pivot < nqubits:
+                if binary_stabilisers[i, pivot] == 1:
+                    if binary_stabilisers[i, pivot + nqubits] == 1:
+                        ops.append(("H_YZ", pivot, None))
+                        binary_stabilisers = hadamard(binary_stabilisers, pivot)
+                        binary_stabilisers = phase_gate(binary_stabilisers, pivot)
+                        binary_stabilisers = hadamard(binary_stabilisers, pivot)
+                        binary_stabilisers = z(binary_stabilisers, pivot)
+                    else:
+                        ops.append(("H_XZ", pivot, None))
+                        binary_stabilisers = hadamard(binary_stabilisers, pivot)
+                for q in range(nqubits):
+                    p = binary_stabilisers[i, q] + (
+                        binary_stabilisers[i, q + nqubits] * 2
+                    )
+                    if p and q != pivot:
+                        if p == 1:
+                            ops.append(("XCX", pivot, q))
+                            binary_stabilisers = hadamard(binary_stabilisers, pivot)
+                            binary_stabilisers = cx(binary_stabilisers, pivot, q)
+                            binary_stabilisers = hadamard(binary_stabilisers, pivot)
+                        elif p == 2:
+                            ops.append(("XCZ", pivot, q))
+                            binary_stabilisers = cx(binary_stabilisers, q, pivot)
+                        else:
+                            ops.append(("XCY", pivot, q))
+                            binary_stabilisers = hadamard(binary_stabilisers, pivot)
+                            binary_stabilisers = z(binary_stabilisers, q)
+                            binary_stabilisers = phase_gate(binary_stabilisers, q)
+                            binary_stabilisers = cx(binary_stabilisers, pivot, q)
+                            binary_stabilisers = hadamard(binary_stabilisers, pivot)
+                            binary_stabilisers = phase_gate(binary_stabilisers, q)
+                if pivot != i:
+                    ops.append(("SWAP", pivot, i))
+                    binary_stabilisers = cx(binary_stabilisers, pivot, i)
+                    binary_stabilisers = cx(binary_stabilisers, i, pivot)
+                    binary_stabilisers = cx(binary_stabilisers, pivot, i)
+            if binary_stabilisers[i, -1] == 1 and i < nqubits:
+                ops.append(("X", None, i))
+                binary_stabilisers = x(binary_stabilisers, i)
+
+        ops = list(reversed(ops))
+
+        newstate = zero_state(nqubits)
+        for op in ops:
+            match op:
+                case (opid, int() as pvt, None):
+                    if opid == "H_YZ":
+                        newstate = hadamard(newstate, pvt)
+                        newstate = phase_gate(newstate, pvt)
+                        newstate = hadamard(newstate, pvt)
+                        newstate = z(newstate, pvt)
+                    elif opid == "H_XZ":
+                        newstate = hadamard(newstate, pvt)
+                    else:
+                        raise ValueError(f"Gate {opid} missing qubit target argument")
+                case (opid, int() as pvt, int() as qub):
+                    if opid == "XCX":
+                        newstate = hadamard(newstate, pvt)
+                        newstate = cx(newstate, pvt, qub)
+                        newstate = hadamard(newstate, pvt)
+                    elif opid == "XCZ":
+                        newstate = cx(newstate, qub, pvt)
+                    elif opid == "XCY":
+                        newstate = hadamard(newstate, pvt)
+                        newstate = z(newstate, qub)
+                        newstate = phase_gate(newstate, qub)
+                        newstate = cx(newstate, pvt, qub)
+                        newstate = hadamard(newstate, pvt)
+                        newstate = phase_gate(newstate, qub)
+                    elif opid == "SWAP":
+                        newstate = cx(newstate, pvt, qub)
+                        newstate = cx(newstate, qub, pvt)
+                        newstate = cx(newstate, pvt, qub)
+                    else:
+                        raise ValueError(f"Gate {opid} missing qubit target argument")
+                case ("X", None, int() as qub):
+                    newstate = x(newstate, qub)
+                case (opid, *_):
+                    raise ValueError(f"Gate {opid} not recognised.")
+
+        binary_destabilisers = newstate[:ngens, :].copy()
+        binary_stabilisers = binary_stabilisers_og
 
     # No matter how we got the destabilisers, check things for sanity
     for i, s in enumerate(binary_stabilisers):

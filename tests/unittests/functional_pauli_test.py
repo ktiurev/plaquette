@@ -14,6 +14,7 @@ from plaquette.pauli import (
     pad_operator,
     pauli_to_dict,
     single_qubit_pauli_operator,
+    string_to_state,
     x,
     z,
 )
@@ -217,6 +218,24 @@ def test_single_qubit_operator_creation_fail():
         ValueError, match=r"Only X, Y, or Z are allowed, optionally with sign"
     ):
         single_qubit_pauli_operator("A", 0, 1)
+
+
+def test_string_to_state():
+    """Test creation of a quantum state in tableau form, destabilizers included."""
+    assert np.all(  # "Zero" state
+        string_to_state(["ZI", "IZ"])
+        == np.array(
+            [[1, 0, 0, 0, 0], [0, 1, 0, 0, 0], [0, 0, 1, 0, 0], [0, 0, 0, 1, 0]],
+            dtype="u1",
+        )
+    )
+    assert np.all(  # Bell pair |00>+|11>
+        string_to_state(["XX", "ZZ"])
+        == np.array(
+            [[0, 0, 1, 0, 0], [0, 1, 0, 0, 0], [1, 1, 0, 0, 0], [0, 0, 1, 1, 0]],
+            dtype="u1",
+        )
+    )
 
 
 @pt.mark.parametrize(

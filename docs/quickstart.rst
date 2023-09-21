@@ -13,7 +13,7 @@ Quickstart
 No software library or application would ever be considered complete without
 the ever-green "Quickstart" section, and ``plaquette`` is no stranger to the
 cliche. We will go through all the steps necessary for you to make a simple
-but imporant type of simulation in the ``plaquette`` way: calculating the
+but important type of simulation in the ``plaquette`` way: calculating the
 :term:`threshold` of a quantum error correcting code. We choose this particular
 example because it touches *all* aspects of the library, albeit in a very
 opinionated way.
