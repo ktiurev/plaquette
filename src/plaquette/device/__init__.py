@@ -332,12 +332,7 @@ class Device:
         self._args, self._kwargs = args, kwargs
         self._backend_name = backend
         self._backend_class = recognized_devices[backend].load()
-        if self._backend_name not in local_simulators:
-            self._backend = self._backend_class(*self._args, **self._kwargs)
-        else:
-            # A local backend needs a circuit for initialisation, so
-            # we delegate this action when the user calls .run()
-            self._backend = None
+        self._backend = self._backend_class(*self._args, **self._kwargs)
 
         self._circuit = None
 
@@ -389,8 +384,8 @@ class Device:
         self,
         circuit: plaq_circuit.Circuit | plaq_circuit.CircuitBuilder,
         *,
-        after_reset=True,
         shots=1,
+        **kwargs,
     ):
         """Run the given circuit.
 
@@ -398,22 +393,15 @@ class Device:
             circuit: The circuit (or the builder containing it) to be simulated.
 
         Keyword Args:
-            after_reset: for simulators, if ``False``, the returned measurement
-                and erasures will still contain any data from previous runs.
-                Otherwise, both these results and the internal state will be reset.
             shots: for remote backends, the number of shots to execute the
                 circuit with.
+            kwargs: backend-specific keyword arguments. For the Clifford
+                simulator, the ``after_reset`` keyword argument may be set. If
+                ``False``, the returned measurement and erasures will still contain
+                any data from previous runs.  Otherwise, both these results and the
+                internal state will be reset.
         """
-        # backend is None in the case of a local simulator, but now we
-        # can actually create one, since we have a circuit
-        if self._backend_name in local_simulators:
-            if self._backend is None or self.circuit is not circuit:
-                self._backend = self._backend_class(
-                    circuit, *self._args, **self._kwargs
-                )
-            return self._backend.run(after_reset=after_reset)
-
-        return self._backend.run(circuit, shots=shots)
+        return self._backend.run(circuit, shots=shots, **kwargs)
 
     def get_sample(self) -> tuple[np.ndarray, np.ndarray]:
         """Return the samples **after a circuit run**.
@@ -421,16 +409,7 @@ class Device:
         Notes:
             This method assumes that the run method has already been called.
         """
-        if self._backend_name in local_simulators:
-            # For local simulators get_sample both runs and processes the
-            # results. Here, we only want to call the method that process the
-            # results, so we choose process_results.
-            # TODO: iron out the naming inconsistency between Device and
-            # simulators
-            get_sample_method = self._backend.process_results
-        else:
-            get_sample_method = self._backend.get_sample
-        return get_sample_method()
+        return self._backend.get_sample()
 
     @property
     def is_completed(self) -> Optional[list[bool]]:
@@ -461,39 +440,41 @@ class AbstractSimulator(metaclass=abc.ABCMeta):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def run(self, *, after_reset=True):
+    def run(
+        self,
+        circuit: plaq_circuit.Circuit | plaq_circuit.CircuitBuilder,
+        *,
+        shots=1,
+        **kwargs,
+    ):
         """Run the given circuit.
 
+        Args:
+            circuit: The Clifford circuit (or the builder containing it) to be
+                simulated.
+
         Keyword Args:
-            after_reset: if ``False``, the returned measurement and erasures will still
-                contain any data from previous runs. Otherwise, both these results and
-                the internal state will be reset.
+            shots: for remote backends, the number of shots to execute the
+                circuit with.
+            kwargs: backend-specific keyword arguments. For the Clifford
+                simulator, the ``after_reset`` keyword argument may be set. If
+                ``False``, the returned measurement and erasures will still contain
+                any data from previous runs.  Otherwise, both these results and the
+                internal state will be reset.
         """
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def process_results(self):
-        """Return the processed measurement results after a circuit run.
-
-        Notes:
-            This method assumes that the run method has already been called.
-        """
-        raise NotImplementedError()
-
-    def get_sample(self, *, after_reset=True) -> tuple[np.ndarray, np.ndarray]:
-        """Sample from simulator.
-
-        Keyword Args:
-            after_reset: if ``True``, the simulator must reset its internal
-                state before returning a new sample. Subclasses that cannot
-                honor this distinction should raise an exception.
+    def get_sample(self) -> tuple[np.ndarray, np.ndarray]:
+        """Return the samples **after a circuit run**.
 
         Returns:
-            a tuple whose first item is an array of measurement outcomes
-            and whose second item is the erasure information. If you draw a new
-            sample with ``after_reset=False``, then the returned value will be
-            a concatenation of results of the latest sample, plus all
-            other samples since the last time ``after_reset`` was ``True``.
+            a tuple whose first item is an array of measurement outcomes and
+            whose second item is the erasure information. For the Clifford
+            simulator, if you draw a new sample with ``after_reset=False``,
+            then the returned value will be a concatenation of results of the
+            latest sample, plus all other samples since the last time
+            ``after_reset`` was ``True``.
 
         Notes:
             The **measurements** item in the returned tuple is a one-dimensional array
@@ -531,5 +512,4 @@ class AbstractSimulator(metaclass=abc.ABCMeta):
                 In theory, a simulator class should immediately return a
                 :class:`.MeasurementSample`, and not require this class method.
         """
-        self.run(after_reset=after_reset)
-        return self.process_results()
+        raise NotImplementedError()

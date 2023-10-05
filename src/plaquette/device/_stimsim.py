@@ -12,10 +12,11 @@ import numpy as np
 import stim  # type: ignore
 
 import plaquette
-from plaquette import circuit, device
+from plaquette import circuit as plaq_circuit
+from plaquette import device
 
 
-def circuit_to_stim(circ: circuit.Circuit) -> tuple[stim.Circuit, list[bool]]:
+def circuit_to_stim(circ: plaq_circuit.Circuit) -> tuple[stim.Circuit, list[bool]]:
     """Convert Clifford circuit in ``plaquette``'s format to Stim's format.
 
     Args:
@@ -74,28 +75,8 @@ class StimSimulator(device.AbstractSimulator):
     .. automethod:: __init__
     """
 
-    #: The circuit
-    circ: circuit.Circuit
-    #: The circuit, converted to Stim's format
-    stim_circ: stim.Circuit
-    #: Determines which measurement results from the Stim circuit are actually erasure
-    #: indicators.
-    meas_is_erasure: np.ndarray
-    #: Seed used when last rebuilding Stim's sampler.
-    stim_seed: int
-    #: The last-used sampler.
-    stim_sampler: stim.CompiledMeasurementSampler = None
-    #: Batch size for retrieving samples from Stim (retrieving single samples is
-    #: inefficient).
-    batch_size: int
-    #: Remaining unused entries from current batch.
-    batch_remaining: int = 0
-    #: Data from current batch.
-    batch: np.ndarray | None = None
-
     def __init__(
         self,
-        circ: circuit.Circuit | circuit.CircuitBuilder,
         *,
         stim_seed: Optional[int] = None,
         batch_size: int = 1024,
@@ -103,7 +84,6 @@ class StimSimulator(device.AbstractSimulator):
         """Create a new Stim-based circuit simulator.
 
         Args:
-            circ: The circuit (or the builder containing it) to be simulated.
             stim_seed: If omitted, a random seed is generated using
                 :attr:`plaquette.rng`.
             batch_size: Number of pre-computed samples.
@@ -112,24 +92,36 @@ class StimSimulator(device.AbstractSimulator):
         reason, :attr:`get_sample()` pre-computes a number of ``batch_size`` samples
         whenever it needs to get new samples from Stim.
         """
-        if isinstance(circ, circuit.CircuitBuilder):
-            self.circ = circ.circ
-        elif isinstance(circ, circuit.Circuit):
-            self.circ = circ
-        else:
-            raise TypeError(
-                "Only a Circuit or a CircuitBuilder can be used in a simulator"
-            )
         self.batch_size = batch_size
-        # Convert the circuit to Stim format. A sampler is not built until an RNG
-        # is supplied.
-        self.stim_circ, is_erasure = circuit_to_stim(self.circ)
-        self.meas_is_erasure = np.array(is_erasure)
-        if stim_seed is None:
-            self.stim_seed = plaquette.rng.integers(0, 2**63)
-        else:
-            self.stim_seed = stim_seed
-        self.reset()
+        """Batch size for retrieving samples from Stim (retrieving single
+        samples is inefficient)."""
+
+        self.stim_seed: int = (
+            stim_seed if stim_seed is not None else plaquette.rng.integers(0, 2**63)
+        )
+        """The last-used sampler."""
+
+        self.circ: plaq_circuit.Circuit | None = None
+        """The circuit."""
+
+        self.stim_circ: stim.Circuit | None = None
+        """The circuit, converted to Stim's format."""
+
+        self.stim_sampler: stim.CompiledMeasurementSampler | None = None
+        """The last-used sampler."""
+
+        self.batch: np.ndarray | None = None
+        """Data from current batch."""
+
+        self.batch_remaining: int = 0
+        """Remaining unused entries from current batch."""
+
+        self.all_meas: np.ndarray = np.array([])
+        """All measurement results of the current batch."""
+
+        self.meas_is_erasure: np.ndarray = np.array([])
+        """Determines which measurement results from the Stim circuit are
+        actually erasure indicators."""
 
     def reset(self, new_seed: Optional[int] = None):
         """Compile a new Stim sampler.
@@ -140,23 +132,52 @@ class StimSimulator(device.AbstractSimulator):
         """
         if new_seed is not None:
             self.stim_seed = new_seed
-        self.stim_sampler = self.stim_circ.compile_sampler(seed=self.stim_seed)
+
+        self.circ = None
+        self.stim_circ = None
+        self.meas_is_erasure = None
+        self.stim_sampler = None
         # Erase current batch (if any)
         self.batch = None
         self.batch_remaining = 0
 
-    def run(self, *, after_reset=True):  # noqa: D102
-        # Sample a new match if necessary.
-        if not after_reset:
-            raise ValueError("Stim does not allow sampling without resetting")
-        if self.batch_remaining == 0:
+    def run(
+        self,
+        circuit: plaq_circuit.Circuit | plaq_circuit.CircuitBuilder,
+        *,
+        shots=1,
+        **kwargs,
+    ):  # noqa: D102
+        if isinstance(circuit, plaq_circuit.CircuitBuilder):
+            circ = circuit.circ
+        elif isinstance(circuit, plaq_circuit.Circuit):
+            circ = circuit
+        else:
+            raise TypeError(
+                "Only a Circuit or a CircuitBuilder can be used in a simulator"
+            )
+
+        if shots != 1:
+            raise ValueError("The Stim simulator only allows running with shots=1.")
+
+        # A circuit different to the cached one was passed - we create a Stim
+        # sampler before sampling the circuit.
+        if self.circ is not circ:
+            self.circ = circ
+
+            # Convert the circuit to Stim format.
+            self.stim_circ, is_erasure = circuit_to_stim(self.circ)
+            self.meas_is_erasure = np.array(is_erasure)
+            self.stim_sampler = self.stim_circ.compile_sampler(seed=self.stim_seed)
+
+        if self.batch_remaining == 0 and self.stim_sampler is not None:
             self.batch = self.stim_sampler.sample(shots=self.batch_size)
             self.batch_remaining = self.batch_size
         assert self.batch is not None
         self.all_meas = self.batch[-self.batch_remaining]
         self.batch_remaining -= 1
 
-    def process_results(  # noqa: D102
+    def get_sample(  # noqa: D102
         self,
     ) -> tuple[np.ndarray, t.Optional[np.ndarray]]:
         # Split results into actual measurements and erasure indications

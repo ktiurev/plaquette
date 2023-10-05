@@ -101,7 +101,7 @@ class TestCircuitSimulatorBase:
         plaquette.rng = stable_rgen
         circ = Circuit()
         circ.gates.append((name, params))
-        c = CircuitSimulator(circ)
+        c = CircuitSimulator()
         with pt.raises(ValueError) as error:
             c._handle_error(name, params)
 
@@ -143,7 +143,8 @@ class TestCircuitSimulatorBase:
         plaquette.rng = stable_rgen
         circ = Circuit()
         circ.gates.append((name, params))
-        c = CircuitSimulator(circ)
+        c = CircuitSimulator()
+        c.state = QuantumState(1)
         with pt.raises(err_t) as error:
             c._handle_gate(name, params)
         assert str(error.value) == error_message
@@ -179,7 +180,8 @@ class TestCircuitSimulatorBase:
         plaquette.rng = stable_rgen
         circ = Circuit()
         circ.gates.append((name, params))
-        c = CircuitSimulator(circ)
+        c = CircuitSimulator()
+        c.state = QuantumState(1)
         with pt.raises(ValueError) as error:
             c._run_gate(name, params)
         assert str(error.value) == error_message
@@ -194,7 +196,8 @@ class TestCircuitSimulatorBase:
         """Run some simple circuits and compare with the expected outputs."""
         plaquette.rng = stable_rgen
         circ = Circuit.from_str(input_circuit)
-        sim = CircuitSimulator(circ)
+        sim = CircuitSimulator()
+        sim.run(circ)
         sim_res, unused_erasure = sim.get_sample()
         assert "".join(map(str, sim_res)) == exp_result
 
@@ -214,7 +217,8 @@ class TestCircuitSimulatorBase:
         """
         plaquette.rng = stable_rgen
         circ = Circuit.from_str(param_circuit)
-        sim = CircuitSimulator(circ)
+        sim = CircuitSimulator()
+        sim.run(circ)
         sim_res, unused_erasure = sim.get_sample()
         sim_res2 = "".join(map(str, sim_res))
         assert sim_res2 == result
