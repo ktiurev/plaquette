@@ -121,16 +121,16 @@ it 10 times.
 ...     dev.run(circ)
 ...     raw, _ = dev.get_sample()
 ...     print(raw)
-[0 0 0 0]
-[1 1 1 1]
-[0 0 0 0]
-[0 0 0 0]
 [1 1 1 1]
 [1 1 1 1]
 [1 1 1 1]
 [1 1 1 1]
 [0 0 0 0]
 [1 1 1 1]
+[1 1 1 1]
+[1 1 1 1]
+[0 0 0 0]
+[0 0 0 0]
 
 Correlated errors
 ~~~~~~~~~~~~~~~~~
@@ -162,8 +162,8 @@ Correlated errors
 [1 1]
 [1 1]
 [1 1]
-[1 1]
 [0 0]
+[1 1]
 [1 1]
 [1 1]
 [1 1]
@@ -200,16 +200,16 @@ erasure channel was applied or not is heralded in ``erasure``.
 ...         "Measurement result: ", raw,
 ...         "Sum:", raw.sum()
 ...     )
-Erased:              [1 1 1 0 1 0 0 1 1 1 0 1 1 1 1 0 0 0 1 1] Sum: 13
-Measurement result:  [0 0 1 0 1 0 0 1 0 0 0 1 1 0 0 0 0 0 1 1] Sum: 7
-Erased:              [0 1 0 1 1 1 1 0 1 0 0 1 0 0 0 0 0 1 1 0] Sum: 9
-Measurement result:  [0 0 0 1 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0] Sum: 2
-Erased:              [1 0 0 1 0 1 1 0 1 0 1 0 0 1 1 1 0 0 0 1] Sum: 10
-Measurement result:  [0 0 0 1 0 0 0 0 0 0 0 0 0 1 1 1 0 0 0 1] Sum: 5
-Erased:              [1 1 1 0 1 1 1 0 0 0 0 1 1 1 1 0 1 1 0 0] Sum: 12
-Measurement result:  [1 1 1 0 1 0 0 0 0 0 0 1 1 0 1 0 1 0 0 0] Sum: 8
-Erased:              [1 0 1 1 0 0 1 0 0 1 1 1 1 1 1 1 0 0 0 1] Sum: 12
-Measurement result:  [0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 1 0 0 0 0] Sum: 2
+Erased:              [0 0 0 0 1 1 1 0 1 1 0 1 0 1 0 0 0 1 0 1] Sum: 9
+Measurement result:  [0 0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 1] Sum: 3
+Erased:              [1 1 1 1 1 1 1 0 1 0 1 0 0 0 0 0 0 1 1 1] Sum: 12
+Measurement result:  [1 0 0 1 1 0 0 0 1 0 1 0 0 0 0 0 0 0 1 1] Sum: 7
+Erased:              [0 1 1 0 0 1 0 0 0 0 1 0 0 0 0 1 1 0 1 0] Sum: 7
+Measurement result:  [0 1 0 0 0 1 0 0 0 0 1 0 0 0 0 0 1 0 0 0] Sum: 4
+Erased:              [1 1 1 1 0 1 1 1 0 0 0 1 0 0 0 1 1 0 0 1] Sum: 11
+Measurement result:  [0 1 0 0 0 1 0 0 0 0 0 0 0 0 0 1 0 0 0 1] Sum: 4
+Erased:              [0 0 1 0 1 0 1 0 1 0 1 0 0 1 1 0 1 1 1 0] Sum: 10
+Measurement result:  [0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 1 0] Sum: 3
 
 The entries of the arrays correspond all the ``E_ERASE`` and ``M``
 instructions in the circuit.
@@ -246,8 +246,20 @@ Then, we simulate it.
    :meth:`.Device.run` to actually run the circuit, followed by calling
    :meth:`.Device.get_sample` even if you have no measurement gates set up.
 
+We choose the "clifford" backend for its performance:
+
 >>> dev = Device("clifford")
 >>> dev.run(circ)  # used to actually run the circuit
+>>> dev.get_sample()
+(array([], dtype=uint8), None)
+
+This backend, however, trades performance for working out the exact quantum
+state internally during the simulation. If we would like to find out more about
+the internal quantum state throughout the simulation, we can use the "tableau"
+backend:
+
+>>> dev = Device("tableau")
+>>> dev.run(circ)
 >>> dev.get_sample()
 (array([], dtype=uint8), None)
 
@@ -255,7 +267,7 @@ Now we can print the internal backend state as a list of stabilisers that
 define such state
 
 >>> from plaquette.pauli import state_to_stabiliser_string
->>> d, s = state_to_stabiliser_string(dev.state.tableau, show_identities=True)
+>>> d, s = state_to_stabiliser_string(dev.state, show_identities=True)
 >>> print("Stabilizers: ", s)
 Stabilizers:  ['+XZI', '+ZXZ', '+IZX']
 
@@ -309,14 +321,14 @@ To teleport the initial state, we need to "undo" the gates, i.e. apply
 >>> # Stabilizers: <-XI, XX>
 >>> c.M(0)
 >>> # Stabilizers: <mZ, -IX>
->>> dev = Device("clifford")
+>>> dev = Device("tableau")
 >>> dev.run(c)
 >>> result = dev.get_sample()[0][0]
->>> d, s = state_to_stabiliser_string(dev.state.tableau, show_identities=True)
+>>> d, s = state_to_stabiliser_string(dev.state, show_identities=True)
 >>> print("Measurement. Result: ", result)
-Measurement. Result:  1
+Measurement. Result:  0
 >>> print("Stabilizers: ", s)
-Stabilizers:  ['-ZI', '-IX']
+Stabilizers:  ['+ZI', '-IX']
 
 Now we "undo" the gates. We first update the circuit:
 
@@ -329,11 +341,11 @@ and then load it into the device:
 >>> dev.circuit = c.circ  # we have to take the circuit in the builder
 >>> dev.run(c.circ)
 >>> result = dev.get_sample()[0][0]
->>> d, s = state_to_stabiliser_string(dev.state.tableau, show_identities=True)
+>>> d, s = state_to_stabiliser_string(dev.state, show_identities=True)
 >>> print("Measurement. Result: ", result)
-Measurement. Result:  1
+Measurement. Result:  0
 >>> print("Stabilizers: ", s)
-Stabilizers:  ['-ZI', '-IZ']
+Stabilizers:  ['+ZI', '-IZ']
 
 As you can see, the output state of the second qubit (regardless the
 intermediate step) is always stabilized by :math:`\langle-IZ\rangle`, i.e. is

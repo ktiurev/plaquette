@@ -56,8 +56,9 @@ class TestRegressionAPI:
     @pt.mark.parametrize(
         "backend_name,reps",
         [
-            ("clifford", 100),
+            ("tableau", 100),
             ("stim", 10000),
+            ("clifford", 1000),
         ],
     )
     def test_pauli_and_measurement_errors_vs_logical_error_rates_in_nickerson_thesis(
@@ -65,6 +66,7 @@ class TestRegressionAPI:
         decoder_class: Type[decoderbase.DecoderInterface],
         backend_name: str,
         reps: int,
+        mocker,
     ):
         """Test to be matched/compared with Fig. 1.12 in doi:10.25560/31475."""
         code = LatticeCode.make_planar(n_rounds=8, size=7)
@@ -83,6 +85,9 @@ class TestRegressionAPI:
         circ = generate_qec_circuit(code, qubit_errors, GateErrorsDict(), logical_op)
 
         dev = Device(backend_name)  # type: ignore
+        if backend_name == "clifford":
+            spy1 = mocker.spy(dev._backend, "create_reference_sample")
+            spy2 = mocker.spy(dev._backend, "perform_pauli_frame_simulation")
 
         decoder = decoder_class.from_code(
             code, cast(ErrorDataDict, qubit_errors), weighted=True
@@ -99,15 +104,22 @@ class TestRegressionAPI:
                 code, correction, results.logical_op_toggle, logical_op
             )
         assert 0.01 < 1 - np.count_nonzero(test_success) / reps < 0.1
+        if backend_name == "clifford":
+            spy1.assert_called_once_with(circ)
+            assert spy2.call_count == reps
 
     @pt.mark.slow
     @pt.mark.parametrize("decoder_class", [PyMatchingDecoder, FusionBlossomDecoder])
-    @pt.mark.parametrize("backend_name,reps", [("clifford", 1000), ("stim", 10000)])
+    @pt.mark.parametrize(
+        "backend_name,reps",
+        [("tableau", 1000), ("stim", 10000), ("clifford", 1000)],
+    )
     def test_pauli_x_errors_vs_logical_error_rates_in_nickerson_thesis(
         self,
         decoder_class: Type[decoderbase.DecoderInterface],
         backend_name: str,
         reps: int,
+        mocker,
     ):
         """Test to be matched/compared with Fig. 1.11 in doi:10.25560/31475."""
         code = LatticeCode.make_planar(n_rounds=1, size=7)
@@ -121,6 +133,9 @@ class TestRegressionAPI:
         plaquette.rng = np.random.default_rng(seed=62934814123)
         circ = generate_qec_circuit(code, qubit_errors, GateErrorsDict(), logical_op)
         dev = Device(backend_name)  # type: ignore
+        if backend_name == "clifford":
+            spy1 = mocker.spy(dev._backend, "create_reference_sample")
+            spy2 = mocker.spy(dev._backend, "perform_pauli_frame_simulation")
 
         decoder = decoder_class.from_code(
             code, cast(ErrorDataDict, qubit_errors), weighted=True
@@ -137,9 +152,15 @@ class TestRegressionAPI:
                 code, correction, results.logical_op_toggle, logical_op
             )
         assert 0.11 < 1 - np.count_nonzero(test_success) / reps < 0.19
+        if backend_name == "clifford":
+            spy1.assert_called_once_with(circ)
+            assert spy2.call_count == reps
 
     @pt.mark.slow
-    @pt.mark.parametrize("backend_name,reps", [("clifford", 100), ("stim", 10000)])
+    @pt.mark.parametrize(
+        "backend_name,reps",
+        [("tableau", 100), ("stim", 10000), ("clifford", 1000)],
+    )
     @pt.mark.parametrize(
         "p_erasure,err_rate,uncertainty",
         [
@@ -155,6 +176,7 @@ class TestRegressionAPI:
         p_erasure: float,
         err_rate: float,
         uncertainty: float,
+        mocker,
     ):
         """This has unfortunately no reference in the literature.
 
@@ -177,6 +199,9 @@ class TestRegressionAPI:
 
         circ = generate_qec_circuit(code, qubit_errors, GateErrorsDict(), logical_op)
         dev = Device(backend_name)  # type: ignore
+        if backend_name == "clifford":
+            spy1 = mocker.spy(dev._backend, "create_reference_sample")
+            spy2 = mocker.spy(dev._backend, "perform_pauli_frame_simulation")
 
         dec = UnionFindDecoder.from_code(
             code, cast(ErrorDataDict, qubit_errors), weighted=True
@@ -198,6 +223,9 @@ class TestRegressionAPI:
             <= 1 - np.count_nonzero(succ) / reps
             <= err_rate + uncertainty / 2
         )
+        if backend_name == "clifford":
+            spy1.assert_called_once_with(circ)
+            assert spy2.call_count == reps
 
     @pt.mark.slow
     def test_pauli_x_errors_vs_logical_error_rate_in_mark_hu_thesis(self):
@@ -255,13 +283,26 @@ def config_nickerson_thesis():
 
 class TestRegressionFrontend:
     @pt.mark.slow
-    @pt.mark.parametrize("backend_name,reps", [("clifford", 100), ("stim", 10000)])
+    @pt.mark.parametrize(
+        "backend_name,reps",
+        [("tableau", 100), ("stim", 10000), ("clifford", 1000)],
+    )
     def test_pauli_and_measurement_errors_vs_logical_error_rates_in_nickerson_thesis(
-        self, backend_name: str, reps: int, config_nickerson_thesis
+        self, backend_name: str, reps: int, config_nickerson_thesis, mocker
     ):
         """Test to be matched/compared with Fig. 1.12 in doi:10.25560/31475."""
         config_nickerson_thesis.device_conf.update(name=backend_name, shots=reps)
         config_nickerson_thesis.build()
+
+        if backend_name == "clifford":
+            spy1 = mocker.spy(
+                config_nickerson_thesis.device._backend, "create_reference_sample"
+            )
+            spy2 = mocker.spy(
+                config_nickerson_thesis.device._backend,
+                "perform_pauli_frame_simulation",
+            )
+
         test_success = np.zeros([reps], dtype=bool)
 
         for i in range(reps):
@@ -280,11 +321,17 @@ class TestRegressionFrontend:
                 config_nickerson_thesis.general_conf["logical_op"],
             )
         assert 0.01 < 1 - np.count_nonzero(test_success) / reps < 0.1
+        if backend_name == "clifford":
+            spy1.assert_called_once_with(config_nickerson_thesis.circuit)
+            assert spy2.call_count == reps
 
     @pt.mark.slow
-    @pt.mark.parametrize("backend_name,reps", [("clifford", 1000), ("stim", 10000)])
+    @pt.mark.parametrize(
+        "backend_name,reps",
+        [("tableau", 1000), ("stim", 10000), ("clifford", 1000)],
+    )
     def test_pauli_x_errors_vs_logical_error_rates_in_nickerson_thesis_frontend(
-        self, backend_name: str, reps: int, config_nickerson_thesis
+        self, backend_name: str, reps: int, config_nickerson_thesis, mocker
     ):
         """Test to be matched/compared with Fig. 1.12 in doi:10.25560/31475."""
         config_nickerson_thesis.device_conf.update(name=backend_name, shots=reps)
@@ -295,6 +342,16 @@ class TestRegressionFrontend:
         )
         config_nickerson_thesis.code_conf.update(rounds=1)
         config_nickerson_thesis.build()
+
+        if backend_name == "clifford":
+            spy1 = mocker.spy(
+                config_nickerson_thesis.device._backend, "create_reference_sample"
+            )
+            spy2 = mocker.spy(
+                config_nickerson_thesis.device._backend,
+                "perform_pauli_frame_simulation",
+            )
+
         test_success = np.zeros([reps], dtype=bool)
 
         for i in range(reps):
@@ -313,9 +370,15 @@ class TestRegressionFrontend:
                 config_nickerson_thesis.general_conf["logical_op"],
             )
         assert 0.11 < 1 - np.count_nonzero(test_success) / reps < 0.19
+        if backend_name == "clifford":
+            spy1.assert_called_once_with(config_nickerson_thesis.circuit)
+            assert spy2.call_count == reps
 
     @pt.mark.slow
-    @pt.mark.parametrize("backend_name,reps", [("clifford", 100), ("stim", 10000)])
+    @pt.mark.parametrize(
+        "backend_name,reps",
+        [("tableau", 100), ("stim", 10000), ("clifford", 1000)],
+    )
     @pt.mark.parametrize(
         "p_erasure,err_rate,uncertainty",
         [
@@ -332,6 +395,7 @@ class TestRegressionFrontend:
         err_rate: float,
         uncertainty: float,
         config_nickerson_thesis,
+        mocker,
     ):
         """This has unfortunately no reference in the literature.
 
@@ -349,6 +413,16 @@ class TestRegressionFrontend:
         config_nickerson_thesis.decoder_conf.name = "UnionFindDecoder"
         config_nickerson_thesis.code_conf.rounds = 1
         config_nickerson_thesis.build()
+
+        if backend_name == "clifford":
+            spy1 = mocker.spy(
+                config_nickerson_thesis.device._backend, "create_reference_sample"
+            )
+            spy2 = mocker.spy(
+                config_nickerson_thesis.device._backend,
+                "perform_pauli_frame_simulation",
+            )
+
         test_success = np.zeros([reps], dtype=bool)
 
         for i in range(reps):
@@ -372,3 +446,6 @@ class TestRegressionFrontend:
             <= 1 - np.count_nonzero(test_success) / reps
             <= err_rate + uncertainty / 2
         )
+        if backend_name == "clifford":
+            spy1.assert_called_once_with(config_nickerson_thesis.circuit)
+            assert spy2.call_count == reps

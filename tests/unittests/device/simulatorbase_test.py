@@ -4,78 +4,15 @@
 
 import numpy as np
 import pytest as pt
-import yaml  # type: ignore
+from conftest import (
+    yaml_circuit_to_pytest_params,
+    yaml_parametrized_circuit_to_pytest_params,
+)
 
 import plaquette
+from plaquette import pauli
 from plaquette.circuit import Circuit
-from plaquette.device import QuantumState
 from plaquette.device._circuitsim import CircuitSimulator
-
-
-def yaml_circuit_to_pytest_params(
-    yaml_path: str, circuit_suite_key: str
-) -> list[tuple]:
-    """Parse non-parametrized circuit to pytests params.
-
-    Args:
-        yaml_path: str
-        circuit_suite_key: str
-
-    Returns:
-        params_list : parameter list that is passed onto pytest.mark.parametrize
-    """
-    circuit_suite: dict[str, dict[str, str]]
-    try:
-        circuit_suite = yaml.load(open(yaml_path), yaml.SafeLoader)[circuit_suite_key]
-    except FileNotFoundError:
-        yaml_path = "tests/unittests/device/" + yaml_path
-        circuit_suite = yaml.load(open(yaml_path), yaml.SafeLoader)[circuit_suite_key]
-    params_list: list[tuple] = []
-    for params in circuit_suite.values():
-        params_list.append(tuple(params.values()))
-
-    return params_list
-
-
-def yaml_parametrized_circuit_to_pytest_params(
-    yaml_path: str, circuit_suite_key: str
-) -> list[tuple]:
-    """Parse non-parametrized circuit to pytests params.
-
-    Args:
-        yaml_path: str
-        circuit_suite_key: str
-
-    Returns:
-        params_list: parameter list that is passed onto
-            ``pytest.mark.parametrize``.
-    """
-    try:
-        circuit_suite = yaml.load(open(yaml_path), yaml.SafeLoader)[circuit_suite_key]
-    except FileNotFoundError:
-        yaml_path = "tests/unittests/device/" + yaml_path
-        circuit_suite = yaml.load(open(yaml_path), yaml.SafeLoader)[circuit_suite_key]
-
-    assert isinstance(
-        circuit_suite, list
-    ), "Please make sure, yaml is correctly specified"
-    params_list: list[tuple] = []
-
-    for dict_ in circuit_suite:
-        assert isinstance(dict_, dict)
-        key = list(dict_.keys())[0]  # this is of length 1 only
-        circ_template: str = dict_[key]["circuit-template"]
-        params: list = dict_[key]["params"]
-        expected_output: list = dict_[key]["expected-output"]
-        assert len(params) == len(
-            expected_output
-        ), "Please make sure number of parameters and expected outputs are same"
-        for index in range(len(params)):
-            params_list.append(
-                (circ_template.format(*params[index]), expected_output[index])
-            )
-
-    return params_list
 
 
 class TestCircuitSimulatorBase:
@@ -144,7 +81,7 @@ class TestCircuitSimulatorBase:
         circ = Circuit()
         circ.gates.append((name, params))
         c = CircuitSimulator()
-        c.state = QuantumState(1)
+        c.state = pauli.zero_state(1)
         with pt.raises(err_t) as error:
             c._handle_gate(name, params)
         assert str(error.value) == error_message
@@ -181,7 +118,7 @@ class TestCircuitSimulatorBase:
         circ = Circuit()
         circ.gates.append((name, params))
         c = CircuitSimulator()
-        c.state = QuantumState(1)
+        c.state = pauli.zero_state(1)
         with pt.raises(ValueError) as error:
             c._run_gate(name, params)
         assert str(error.value) == error_message
@@ -222,18 +159,3 @@ class TestCircuitSimulatorBase:
         sim_res, unused_erasure = sim.get_sample()
         sim_res2 = "".join(map(str, sim_res))
         assert sim_res2 == result
-
-
-class TestQuantumState:
-    """Tests related to the QuantumState object."""
-
-    def test_string_representation(self):
-        """Make sure that turning a state into a string of stabilisers works."""
-        state = QuantumState(10)
-        state.x(1)
-        assert str(state).split("\n")[state.n_q + 2].startswith("-IZ")
-        state.z(1)
-        assert str(state).split("\n")[1].startswith("-IX")
-        state.hadamard(5)
-        assert str(state).split("\n")[state.n_q + 6][6] == "X"
-        assert str(state).split("\n")[5][6] == "Z"

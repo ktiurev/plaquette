@@ -283,3 +283,48 @@ def test_number_of_qubits(input_circuit, expected_count):
     circ = Circuit.from_str(input_circuit)
     result = circ.number_of_qubits
     assert result == expected_count, f"Expected: {expected_count}, Got: {result}"
+
+
+circuit_inputs = load_strings("tests/unittests/circuit/circuit_inputs.txt")
+
+# The circuit_inputs file contains no errors, so we expect the same
+# circuits
+circuit_inputs_expected = circuit_inputs
+
+
+@pt.mark.parametrize(
+    "old_circuit, new_circuit", zip(circuit_inputs, circuit_inputs_expected)
+)
+def test_create_no_noise_circuit_no_error_circuits(old_circuit, new_circuit):
+    """Test the without_errors method on inputs that didn't even contain
+    errors."""
+    circ = Circuit.from_str(old_circuit)
+
+    changed_circ = circ.without_errors()
+    expected_circ = Circuit.from_str(new_circuit)
+    assert len(changed_circ.gates), len(expected_circ.gates)
+    for g1, g2 in zip(changed_circ.gates, expected_circ.gates):
+        assert g1 == g2
+
+
+circuit_inputs_with_unsupported = load_strings(
+    "tests/unittests/circuit/circuit_inputs_with_unsupported.txt"
+)
+circuit_inputs_with_unsupported_expected = load_strings(
+    "tests/unittests/circuit/circuit_inputs_with_unsupported_errors_removed.txt"
+)
+
+
+@pt.mark.parametrize(
+    "old_circuit, new_circuit",
+    zip(circuit_inputs_with_unsupported, circuit_inputs_with_unsupported_expected),
+)
+def test_create_no_noise_circuit_inputs_have_errors(old_circuit, new_circuit):
+    """Test the without_errors method on inputs that contained errors."""
+    circ = Circuit.from_str(old_circuit)
+
+    changed_circ = circ.without_errors()
+    expected_circ = Circuit.from_str(new_circuit)
+    assert len(changed_circ.gates), len(expected_circ.gates)
+    for g1, g2 in zip(changed_circ.gates, expected_circ.gates):
+        assert g1 == g2

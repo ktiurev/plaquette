@@ -66,8 +66,9 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 target-version = "py310"
 
 [project.entry-points."plaquette.device"]
-clifford = "plaquette.device._circuitsim:CircuitSimulator"
+clifford = "plaquette.device._errortrackingbackend:ErrorTrackingBackend"
 stim = "plaquette.device._stimsim:StimSimulator"
+tableau = "plaquette.device._circuitsim:CircuitSimulator"
 
 [tool.ruff.isort]
 known-first-party = ["plaquette"]

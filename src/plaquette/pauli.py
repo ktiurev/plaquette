@@ -7,7 +7,7 @@ independent of anything else in the package itself *except* for the random numbe
 generator necessary for the measurement functions.
 
 Notes:
-    All calculations in ``plaquette`` are based on the tableau formalism introduced
+    Many calculations in ``plaquette`` are based on the tableau formalism introduced
     by :cite:`aaronson_improved_2004`. The implementation of this is based on
     ``numpy`` for convenience of development and familiarity with the wider
     scientific ecosystem, but it comes with some catches that one need to be

@@ -228,6 +228,15 @@ class Circuit:
             raise ValueError(f"Do not know how to handle gate {name!r}")
         self.gates.append((str(name), args))
 
+    def without_errors(self) -> Circuit:
+        """Return an identical circuit without any error instructions in it."""
+        new_circuit = Circuit()
+        for c in list(self.gates):
+            gate_name, args = c
+            if gate_name not in self.error_gates:
+                new_circuit.append(gate_name, *args)
+        return new_circuit
+
 
 class CircuitBuilder:
     """Helper class to build circuits programatically.

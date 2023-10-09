@@ -94,11 +94,12 @@ requirements and apply it to the code.
 
 .. note::
 
-    Operators in ``plaquette`` are represented through the tableau formalism, which
-    will be introduced in future blog-posts. For now, it suffices to mention that we
-    are creating the correction as a ``python`` ``dict`` (which is how we created the
-    errors in the previous in the previous post), and we will transform them into
-    the correct form by using a function from ``plaquette.pauli``.
+    Operators in ``plaquette`` are represented by a Pauli frame or through the
+    tableau formalism, each of which will be introduced in future blog-posts.
+    For now, it suffices to mention that we are creating the correction as a
+    ``python`` ``dict`` (which is how we created the errors in the previous in
+    the previous post), and we will transform them into the correct form by
+    using a function from ``plaquette.pauli``.
 
 Consider the syndrome shown below. We decide to define a correction operator consisting
 of an :math:`X` operator on the qubit with index :math:`3` and a :math:`Z` operator on

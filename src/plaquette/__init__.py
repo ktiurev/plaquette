@@ -17,7 +17,8 @@ and the classical control for finding and correcting errors is provided by
 :mod:`plaquette.decoders`, which internally uses :mod:`plaquette.syngraph`. A
 set of helper tools for visualising codes and simulation results can be found
 in :mod:`plaquette.visualizer`. Finally, the underlying
-"tableau-representation" is implemented by the :mod:`plaquette.pauli`.
+"tableau-representation" and Pauli frame error tracking are implemented by the
+:mod:`plaquette.pauli` and :mod:`plaquette.pauli_frame` respectively.
 """
 
 import sys

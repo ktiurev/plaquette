@@ -351,8 +351,8 @@ To run a circuit, a device has to be created by specifying a backend. Right
 now, you have two options to run your circuit locally.
 
 ``"clifford"``
-   which is a simple, hackable tableau-based simulator for Clifford circuits
-   that trades speed for simplicity.
+   which is a simple, hackable Pauli frame and tableau-based simulator for
+   Clifford circuits that trades speed for simplicity.
 
 
 ``"stim"``
@@ -393,16 +393,6 @@ device. After running the quantum circuit you can ask for a measurement sample
 obtained while running through the circuit. It contains both measurements
 related to the stabilisers themselves, state preparation, and logical
 operators.
-
-.. caution::
-
-   By default, a device with a local backend will reset itself such that
-   running it will make it generate a sample from a clean state. The
-   ``clifford`` backend supports also runing *without* resetting its internal
-   state and will keep accumulating measurement results
-   such that, at each new sample, ``raw_results`` and ``erasure`` will have
-   *all* results from all runs, and the internal quantum state will be
-   whatever it was after the previous circuit finished running.
 
 Since we didn't manually make this circuit, but rather it was generated from
 a code, we make sense of the single values in this array by "unpacking it"
@@ -514,7 +504,7 @@ error rate*.
 ...     ):
 ...         successes += 1
 >>> 1 - successes / reps # doctest: +ELLIPSIS
-0.024...
+0.036...
 
 If we combine this with changing the error rates and the size of the code, we
 can calculate the threshold of the code. We can switch to the ``"stim"``

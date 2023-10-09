@@ -32,139 +32,14 @@ array into different parts (this assumes that the circuit was generated using
 
 import abc
 from dataclasses import dataclass
-from typing import Iterable, Optional, Sequence
+from typing import Optional
 
 import numpy as np
 import pkg_resources
 
 from plaquette import circuit as plaq_circuit
 from plaquette.codes import LatticeCode
-from plaquette.pauli import (
-    count_qubits,
-    cx,
-    cz,
-    hadamard,
-    reset_qubits_to_eigenstate,
-    state_to_stabiliser_string,
-    x,
-    y,
-    z,
-    zero_state,
-)
-
-
-class QuantumState:
-    """Quantum state represented by stabilizer and destabilizer generators (tableau).
-
-    The description comprises the full tableau of the state including sign, destabilizer
-    and stabilizer as introduced in :cite:`aaronson_improved_2004`.
-
-    .. automethod:: __init__
-    """
-
-    def __init__(self, qubits: int):
-        """Initialize a new state in the computational 0-state.
-
-        Args:
-            qubits: Total number of qubits in the state.
-        """
-        #: Full tableau of the state including sign, destabilizer and stabiliser
-        #: generators in the binary picture
-        self.tableau = zero_state(qubits)
-
-    def __array__(self) -> np.ndarray:
-        """Support direct casting of this object into a numpy array."""
-        return self.tableau
-
-    def __str__(self) -> str:  # noqa: D105
-        d, s = state_to_stabiliser_string(self.tableau, show_identities=True)
-        # you can't use new-lines in f-strings parameters, so this is necessary
-        new_line = "\n"
-        return f"{new_line.join(d)}\n{'-'*(len(d)+1)}\n{new_line.join(s)}"
-
-    def cx(
-        self, control_qubits: int | Sequence[int], target_qubits: int | Sequence[int]
-    ):
-        """Perform the CNOT gate on this state.
-
-        Args:
-            control_qubits: the control qubits.
-            target_qubits: the target qubits.
-        """
-        # FIXME: I don't know why mypy complains here with
-        #  "Argument 2 has incompatible type "Union[int, Sequence[int]]"; expected "int"
-        #  CLEARLY the types match...
-        self.tableau = cx(self.tableau, control_qubits, target_qubits)  # type: ignore
-
-    def cz(
-        self, control_qubits: int | Sequence[int], target_qubits: int | Sequence[int]
-    ):
-        """Perform the CPHASE gate on this state.
-
-        Args:
-            control_qubits: the control qubits.
-            target_qubits: the target qubits.
-        """
-        # FIXME: See FIXME in self.cx
-        self.tableau = cz(self.tableau, control_qubits, target_qubits)  # type: ignore
-
-    def hadamard(self, qubits: int | Sequence[int]):
-        """Perform the Hadamard gate on this state.
-
-        Args:
-            qubits: qubits onto which to apply the gate.
-        """
-        self.tableau = hadamard(self.tableau, qubits)
-
-    def x(self, qubits: int | Iterable[int]):
-        """Perform the X gate on this state.
-
-        Args:
-            qubits: qubits onto which to apply the gate.
-        """
-        self.tableau = x(self.tableau, qubits)
-
-    def y(self, qubits: int | Iterable[int]):
-        """Perform the Y gate on this state.
-
-        Args:
-            qubits: qubits onto which to apply the gate.
-        """
-        self.tableau = y(self.tableau, qubits)
-
-    def z(self, qubits: int | Iterable[int]):
-        """Perform the Z gate on this state.
-
-        Args:
-            qubits: qubits onto which to apply the gate.
-        """
-        self.tableau = z(self.tableau, qubits)
-
-    @property
-    def number_of_qubits(self):
-        """Number of qubits in the state."""
-        return count_qubits(self.tableau)[0]
-
-    @property
-    def n_q(self):
-        """Alias for number of qubits.
-
-        See Also:
-            :attr:`number_of_qubits`
-        """
-        return count_qubits(self.tableau)[0]
-
-    def reset_qubits_to_eigenstate(self, basis: str, qubits: Sequence[int]):
-        """Reset the given ``qubits`` to the plus-eigenstate of the given basis.
-
-        Args:
-            basis: either ``"X"`` or ``"Z"``.
-            qubits: qubit indices to reset.
-        """
-        # TODO: check if this is necessary
-        if basis not in "XZ" and len(basis) != 1:
-            raise ValueError(f"{basis!r} is not a valid basis.")
-        self.tableau = reset_qubits_to_eigenstate(self.tableau, basis, qubits)
+from plaquette.pauli import count_qubits
 
 
 @dataclass
@@ -285,7 +160,7 @@ class MeasurementSample:
         )
 
 
-local_simulators = {"clifford", "stim"}
+local_simulators = {"clifford", "stim", "tableau"}
 
 
 # The recognized quantum devices.
@@ -305,7 +180,7 @@ class Device:
         """Create a new quantum device.
 
         There are two built-in backends: ``"clifford"``
-        (:class:`.CircuitSimulator`, simulator based on Clifford circuits) and
+        (:class:`.ErrorTrackingBackend`, simulator based on Clifford circuits) and
         ``"stim"`` (:class:`.StimSimulator`, simulator using Stim as
         backend).
 

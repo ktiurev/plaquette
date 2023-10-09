@@ -509,7 +509,7 @@ class CodeLattice:
             n_qubits: the total number of qubits on which the operators will act.
 
         Returns:
-            a list of "tableau" representations of the operators linked to the vertices.
+            a list of tableau representations of the operators linked to the vertices.
         """
         # TODO: check if this is actually correct. This is the old behaviour of
         #  PauliList, which would produce an empty PauliList if you passed an empty

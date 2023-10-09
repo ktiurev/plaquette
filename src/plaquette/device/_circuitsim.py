@@ -26,19 +26,19 @@ class CircuitSimulator(device.AbstractSimulator):
     def __init__(self):
         """Create a new simulator."""
         #: State object
-        self.state: None | device.QuantumState = None
+        self.state: None | pauli.Tableau = None
         self.circ: None | plaq_circuit.CircuitBuilder | plaq_circuit.Circuit = None
         """Circuit object to execute."""
-        #: Measurement results collected while running the circuit
         self.meas_results: list[int] = []
-        #: Erasure information (one bool for each ``E_ERASE`` instruction).
+        """Measurement results collected while running the circuit"""
         self.erasure: list[bool] = []
-        #: Specifies whether the last instruction was an error instruction
+        """Erasure information (one bool for each ``E_ERASE`` instruction)."""
         self.in_error: bool = False
-        #: Specifies whether an error was already applied in the current error block
+        """Specifies whether the last instruction was an error instruction"""
         self.any_error_applied: bool = False
-        #: Specifies whether the current error branch is being applied.
+        """Specifies whether an error was already applied in the current error block"""
         self.apply_branch: bool = False
+        """Specifies whether the current error branch is being applied."""
 
         self._instruction_pointer: int = -1
         """Index pointing to the **next** instruction to execute.
@@ -52,7 +52,7 @@ class CircuitSimulator(device.AbstractSimulator):
         """Iterate through instructions one-by-one.
 
         This allows you to run the circuit in a stepped fashion, enabling you
-        to analyse/modify/play with the internal :class:`.QuantumState` of the
+        to analyse/modify/play with the internal state of the
         simulator.
 
         .. important:: Each time a new iterator is made, the instruction
@@ -81,10 +81,8 @@ class CircuitSimulator(device.AbstractSimulator):
         """Number of qubits that this simulator handles.
 
         This depends on the circuit used to create the simulator.
-
-        .. seealso:: :meth:`.QuantumState.number_of_qubits`
         """
-        return self.state.number_of_qubits
+        return pauli.count_qubits(self.state)[0]
 
     def _handle_error(self, name, args):
         match name:
@@ -118,27 +116,27 @@ class CircuitSimulator(device.AbstractSimulator):
         if self.state is not None:
             match name:
                 case "X":
-                    self.state.x(args)
+                    self.state = pauli.x(self.state, args)
                 case "Y":
-                    self.state.y(args)
+                    self.state = pauli.y(self.state, args)
                 case "Z":
-                    self.state.z(args)
+                    self.state = pauli.z(self.state, args)
                 case "H":
-                    self.state.hadamard(args)
+                    self.state = pauli.hadamard(self.state, args)
                 case "CX":
-                    self.state.cx(args[::2], args[1::2])
+                    self.state = pauli.cx(self.state, args[::2], args[1::2])
                 case "CZ":
-                    self.state.cz(args[::2], args[1::2])
+                    self.state = pauli.cz(self.state, args[::2], args[1::2])
                 case "M":
                     n_q = self.n_qubits  # saves time in the loop
                     for q in args:
-                        self.state.tableau, res = pauli.measure(
-                            self.state.tableau,
+                        self.state, res = pauli.measure(
+                            self.state,
                             pauli.single_qubit_pauli_operator("Z", q, n_q),
                         )
                         self.meas_results.append(res)
                 case "R":
-                    self.state.reset_qubits_to_eigenstate("Z", args)
+                    self.state = pauli.reset_qubits_to_eigenstate(self.state, "Z", args)
                 case "DEPOLARIZE":
                     for qubit in args:
                         # Apply X, Y or Z with 33% probability each.
@@ -176,11 +174,11 @@ class CircuitSimulator(device.AbstractSimulator):
                 case 0:
                     pass  # Do nothing
                 case 1:
-                    self.state.x(qubit)
+                    self.state = pauli.x(self.state, qubit)
                 case 2:
-                    self.state.y(qubit)
+                    self.state = pauli.y(self.state, qubit)
                 case 3:
-                    self.state.z(qubit)
+                    self.state = pauli.z(self.state, qubit)
                 case _:
                     raise AssertionError("This should never happen")
 
@@ -215,7 +213,7 @@ class CircuitSimulator(device.AbstractSimulator):
         if after_reset:
             self.reset()
 
-        self.state = device.QuantumState(self.circ.number_of_qubits)
+        self.state = pauli.zero_state(self.circ.number_of_qubits)
 
         for _ in self:
             # Go through all instructions

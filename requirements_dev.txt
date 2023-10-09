@@ -11,6 +11,7 @@ ruff==0.0.291
 furo
 pytest>=7.1.2
 pytest-xdist
+pytest-mock
 joblib
 sphinx>=5.3.0
 sphinx-autobuild>=2021.3.14

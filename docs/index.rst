@@ -116,6 +116,9 @@ Overall structure
 :mod:`plaquette.pauli`
    Low-level, functional-style module that implements Pauli operations through the
    tableau formalism.
+:mod:`plaquette.pauli_frame`
+   Another low-level, functional-style module similar to :mod:`plaquette.pauli`
+   that implements Pauli operations evolve the Pauli frame data structure.
 :mod:`plaquette.codes`
    Classes and methods dealing with the definition of error correction codes and
    lattices on which they are defined.
