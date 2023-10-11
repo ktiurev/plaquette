@@ -52,7 +52,7 @@ polishing. If you encounter something you think (or the docs say) should work bu
 not, just open an `issue <https://github.com/qc-design/plaquette/issues/new>`_
 or, if you also want to share a solution, a
 `pull request <https://github.com/qc-design/plaquette/compare>`_! See
-our `development standard <https://docs.plaquette.design/dev/index.html>`_ to
+our `development standard <https://docs.plaquette.design/en/latest/dev/index.html>`_ to
 have an idea of how to match your suggestions to the codebase.
 
 Want to simply share feedback or you're unsure how to do something? Open a new
