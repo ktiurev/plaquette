@@ -11,3 +11,6 @@ small-codes-without-error:
   rep-code-5-logical-1:
     circuit-string: "X 0\nCX 0 1 0 2 0 3 0 4\nM 0 1 2 3 4"
     expected-output: "11111"
+  higher-qubit-index-than-num-measurements:
+    circuit-string: "X 0\nCX 0 4\nM 4"
+    expected-output: "1"

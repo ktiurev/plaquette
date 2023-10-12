@@ -149,7 +149,7 @@ class TestDeviceErrorTracker:
         def mock_init_pauli_frame(num_qubits):
             return np.zeros(num_qubits)  # Mock implementation returning zeros
 
-        def mock_measure(frame, ref_sample, args):
+        def mock_measure(frame, ref_sample, args, meas_index):
             return frame, mock_samples  # Mock measurement outcome
 
         class MockCircuit:
@@ -189,7 +189,7 @@ class TestDeviceErrorTracker:
         def mock_init_pauli_frame(num_qubits):
             return np.zeros(num_qubits)  # Mock implementation returning zeros
 
-        def mock_measure(frame, ref_sample, args):
+        def mock_measure(frame, ref_sample, args, meas_index):
             return frame, mock_samples  # Mock measurement outcome
 
         def mock_erase(frame, p, target):

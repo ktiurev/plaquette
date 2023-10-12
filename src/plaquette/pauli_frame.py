@@ -352,13 +352,26 @@ def reset_qubits(pauli_frame: PauliFrame, targets: Sequence[int]) -> PauliFrame:
 
 
 def measure(
-    pauli_frame: PauliFrame, ref_sample: np.ndarray, qubits: Sequence[int]
+    pauli_frame: PauliFrame,
+    ref_sample: np.ndarray,
+    qubits: Sequence[int],
+    meas_index: int,
 ) -> tuple[PauliFrame, np.ndarray]:
     """Measure the target qubits by using the reference sample and the Pauli frame.
 
-    The measurement outcome (final sample) of a qubit is obtained by
-    performing an exclusive or (XOR) operation between the reference sample
-    of the qubit and the X error component of the qubit in the Pauli frame.
+    The measurement outcome (final sample) of a qubit is obtained by performing
+    an exclusive or (XOR) operation between the reference sample and the
+    X-error component of the qubit in the Pauli frame.
+
+    Note that this method supports measuring multiple qubits at the same time.
+    Therefore, a subset of the reference samples and a subset of the X-error
+    components from the Pauli frame are obtained.
+
+    Measuring multiple qubits with a single measurement instruction produces a
+    sequence of measurement outcomes. Since the reference sample is a
+    concatenation of all measurement outcomes, when slicing into the reference
+    sample the end index is the sum of the measurement instruction index and
+    the number of qubits to be measured.
 
     After measurements, a Pauli Z operation is applied to the measured
     qubits as measurements are collapsing operations.
@@ -367,11 +380,20 @@ def measure(
         pauli_frame: the Pauli frame to update
         ref_sample: the reference sample
         qubits: the qubits to measure
+        meas_index: Index of the measurement instruction in the circuit. The
+            measurement index along with the number of qubits will be used retrieve
+            the required reference samples.
     """
     target_x_indices = list(qubits)
 
+    start_idx_ref_sample = meas_index
+    end_idx_ref_sample = start_idx_ref_sample + len(qubits)
+
     # r_M XOR x_q
-    measurement_outcomes = ref_sample[target_x_indices] ^ pauli_frame[target_x_indices]
+    measurement_outcomes = (
+        ref_sample[start_idx_ref_sample:end_idx_ref_sample]
+        ^ pauli_frame[target_x_indices]
+    )
     for qubit in qubits:
         pauli_frame = maybe_apply_z(pauli_frame, qubit)
     return pauli_frame, measurement_outcomes

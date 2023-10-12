@@ -801,30 +801,47 @@ class TestQuantumOpsAppliedToFrame:
         return pauli_frame
 
     @pt.mark.parametrize(
-        "ref_sample, pauli_frame, expected_samples, targets",
+        "ref_sample, pauli_frame, expected_samples, targets, meas_index",
         [
             (
-                np.array([1, 1, 1, 1], dtype=np.uint8),
+                np.array([1], dtype=np.uint8),
                 np.array([0, 0, 0, 0], dtype=np.uint8),
                 np.array([1], dtype=np.uint8),
                 [0],
+                0,
             ),
             (
-                np.array([1, 1, 0, 1], dtype=np.uint8),
+                np.array([1, 1, 1, 1], dtype=np.uint8),
+                np.array([0, 0, 1, 0], dtype=np.uint8),
+                np.array([1], dtype=np.uint8),
+                [0],
+                1,
+            ),
+            (
+                np.array([1, 1, 0], dtype=np.uint8),
                 np.array([0, 1, 1, 1], dtype=np.uint8),
-                np.array([1, 0], dtype=np.uint8),
+                np.array([1, 1], dtype=np.uint8),
                 [0, 1],
+                1,
             ),
             (
-                np.array([0, 1, 1, 1], dtype=np.uint8),
                 np.array([1, 1, 0, 1], dtype=np.uint8),
-                np.array([0, 1], dtype=np.uint8),
+                np.array([1, 1, 0, 1], dtype=np.uint8),
+                np.array([1, 0], dtype=np.uint8),
                 [1, 0],
+                2,
             ),
         ],
     )
     def test_measure(
-        self, ref_sample, pauli_frame, expected_samples, targets, monkeypatch, mocker
+        self,
+        ref_sample,
+        pauli_frame,
+        expected_samples,
+        targets,
+        meas_index,
+        monkeypatch,
+        mocker,
     ):
         """Run some simple circuits and compare with the expected outputs."""
 
@@ -834,7 +851,7 @@ class TestQuantumOpsAppliedToFrame:
             m.setattr(plaquette.pauli_frame, "maybe_apply_z", self.mock_maybe_apply_z)
 
             assert spy.call_count == 0
-            res_frame, samples = measure(pauli_frame, ref_sample, targets)
+            res_frame, samples = measure(pauli_frame, ref_sample, targets, meas_index)
 
             assert len(samples) == len(expected_samples)
             assert np.allclose(samples, expected_samples)

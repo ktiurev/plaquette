@@ -133,13 +133,18 @@ class ErrorTrackingBackend:
         meas_results: list = []
         erasure: list = []
 
+        measurement_instruction_idx = 0
         for name, args in circuit.gates:
             if name == "M":
                 if self.pauli_frame is not None and self.ref_sample is not None:
                     self.pauli_frame, sample = pauli_frame_ops.measure(
-                        self.pauli_frame, self.ref_sample, args
+                        self.pauli_frame,
+                        self.ref_sample,
+                        args,
+                        measurement_instruction_idx,
                     )
                     meas_results.extend(sample)
+                    measurement_instruction_idx += len(args)
 
             elif name == "E_ERASE":
                 p, qubit = args
